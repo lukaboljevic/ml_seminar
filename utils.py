@@ -1,18 +1,51 @@
 import os
 import pickle
-from scipy.sparse import hstack
+from scipy.sparse import hstack, csr_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import linear_kernel, euclidean_distances
+from sklearn.neighbors import NearestNeighbors
 import re
 from nltk.corpus import stopwords
 import pandas as pd
 import numpy as np
+from fuzzywuzzy import fuzz
 
 COSINE = 'cosine'
 EUCLIDEAN = 'euclidean'
 JACCARD = 'jaccard'
 CLEANR = re.compile("<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});") # for removing tags https://stackoverflow.com/questions/9662346/python-code-to-remove-html-tags-from-a-string
 english_stopwords = stopwords.words('english')
+
+################################ GENERAL FUNCTIONS ################################
+
+def find_closest_title(game_names, title):
+    """
+    Returns the most likely game name for this particular title
+
+    Parameters
+    ----------
+    game_names: pd.DataFrame
+        A dataframe that has at least a column with all the names
+
+    title: str
+
+    """
+    all_games = game_names["name"].values
+    matches = []
+    for game in all_games:
+        ratio = fuzz.ratio(title.lower(), game.lower())
+        if ratio >= 60:
+            matches.append((game, ratio))
+    if not matches:
+        return None
+    matches = sorted(matches, key=lambda x: x[1], reverse=True)
+    return matches[0][0]
+
+def percentage(f):
+    """
+    Return the percentage version of a float f
+    """
+    return round(f * 100, 3)
 
 ################################ DATASET RELATED FUNCTIONS ################################
 
@@ -53,9 +86,9 @@ def remove_semicolons(text):
 #     # that's just useless info really
 #     return text.split()
 
-def make_usable_dataset():
+def make_content_based_dataset():
     """
-    Make a dataset to work on
+    Make a dataset to work on for the content based filtering approach
     """
     main_columns = [
         "appid",
@@ -88,9 +121,40 @@ def make_usable_dataset():
     joined_df["recommendation_info"] = joined_df["recommendation_info"].apply(preprocess_text_countvec)
 
     # Save
-    joined_df.to_csv("sets/early_working_dataset.csv", index=False)
+    joined_df.to_csv("sets/content_based_dataset.csv", index=False)
 
-################################ SIMILARITY MATRICES RELATED FUNCTIONS ################################
+
+"""
+I will also convert the positive and negative ratings into a percentage:
+positive / (positive + negative)
+
+Maybe a good idea would be to first remove games with less than like 5000 or so ratings
+just because if they have like 4000 positive and 1000 negative ratings
+"""
+
+def make_collaborative_based_dataset(): 
+    main_columns = [
+        "appid",
+        "name",
+        "english",
+        "positive_ratings",
+        "negative_ratings"
+    ]
+    main_df = pd.read_csv("sets/steam.csv", usecols=main_columns)
+    main_df = main_df[main_df["english"] == 1].reset_index(drop=True) # remove games which don't have english translation
+    main_df = main_df.drop("english", axis=1) # we don't need this column anymore
+    main_df["total_ratings"] = main_df["positive_ratings"] + main_df["negative_ratings"]
+    main_df = main_df[main_df["total_ratings"] >= 1000]
+    main_df["rating_percentage"] = main_df["positive_ratings"] / main_df["total_ratings"]
+
+    names = main_df[["appid", "name"]].copy()
+    names.to_csv("sets/collaborative_based_dataset_names.csv", index=False)
+
+    main_df = main_df.drop("name", axis=1) # we don't need this column anymore
+    main_df.to_csv("sets/collaborative_based_dataset.csv", index=False)
+
+
+################################ CONTENT-BASED FILTERING RELATED FUNCTIONS ################################
 
 def jaccard(vec1, vec2):
     """
@@ -213,6 +277,35 @@ def vectorize_and_similaritize(df, metrics):
         mtx = read_or_calc_similarity(filename, metric, joined_matrices)
         print(f"Joined matrices for {metric} metric done!")
 
-# df = pd.read_csv("sets/early_working_dataset.csv")
+################################ ITEM-BASED COLLABORATIVE FILTERING RELATED FUNCTIONS ################################
+
+def train_model():
+    # Read the set
+    all_ratings = pd.read_csv("sets/collaborative_based_dataset.csv")
+
+    # Extract raw rating percentages, form into an N x 1 matrix
+    # so we can train it using KNN
+    raw_rating_perc = all_ratings["rating_percentage"].values
+    n = len(raw_rating_perc)
+    perc_matrix = np.array(raw_rating_perc).reshape(n, 1)
+
+    # In the matrix made above, the entry at index i corresponds to the
+    # rating percentage of a game that was in the i-th row in the dataset
+    # (and that game has its appid i.e. game id)
+    # So create this mapping and the reverse mapping for later
+    ids = all_ratings["appid"]
+    index_to_appid = {
+        index: appid for index, appid in enumerate(ids)
+    }
+    appid_to_index = {
+        appid: index for index, appid in index_to_appid.items()
+    }
+
+    # Make the model
+    knn = NearestNeighbors(metric="euclidean", algorithm="brute").fit(perc_matrix)
+
+    return knn, perc_matrix, index_to_appid, appid_to_index
+
+# df = pd.read_csv("sets/content_based_dataset.csv")
 # df["about_the_game"] = df["about_the_game"].fillna("")
 # vectorize_and_similaritize(df, [JACCARD])
