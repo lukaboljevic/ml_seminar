@@ -7,7 +7,7 @@ def content_based_similar_games(title, mtx, metric, num_recommendations):
     
     # Read necessary set
     df = pd.read_csv("sets/content_based_dataset.csv")
-    df["about_the_game"] = df["about_the_game"].fillna("")
+    df["about_the_game"] = df["about_the_game"].fillna("") # for some reason I need to do this
 
     # Get the most likely title for the input
     temp = pd.DataFrame(df["name"], columns=["name"])
@@ -72,21 +72,21 @@ def collaborative_based_similar_games(title, num_recommendations):
 
 metrics = [
     COSINE,
-    EUCLIDEAN,
+    # EUCLIDEAN,
     # JACCARD,
 ]
 num_recommendations = 20
-description = True
+description = False
 games = [
     # "Team Fortress Classic",
     # "DOOM II",
     # "DmC: Devil May Cry",
     # "DiRT 4", 
-    # "The Witcher 2: Assassins of Kings Enhanced Edition",
+    # "the witcher 2 assassins of kings",
     # "Middle-earth™: Shadow of War™",
     # "Among Us",
-    # "Trackmania United Forever Star Edition",
-    "grid 2",
+    "Trackmania United Forever",
+    # "grid 2",
 ]
 for metric in metrics:
     if description:
@@ -98,4 +98,7 @@ for metric in metrics:
         content_based_similar_games(game, mtx, metric, num_recommendations)
         print()
         # collaborative_based_similar_games(game, num_recommendations)
-        
+        # print()
+
+# df = pd.read_csv("sets/content_based_dataset.csv")
+# df["about_the_game"] = df["about_the_game"].fillna("")
