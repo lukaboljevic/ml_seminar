@@ -1,6 +1,6 @@
 import os
 import pickle
-from scipy.sparse import hstack, csr_matrix
+from scipy.sparse import hstack
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import linear_kernel, euclidean_distances
 from sklearn.neighbors import NearestNeighbors
@@ -289,7 +289,7 @@ def vectorize_and_similaritize(df, metrics):
 
 ################################ ITEM-BASED COLLABORATIVE FILTERING RELATED FUNCTIONS ################################
 
-def train_model():
+def train_model(metric):
     # Read the set
     all_ratings = pd.read_csv("sets/collaborative_based_dataset.csv")
 
@@ -312,7 +312,7 @@ def train_model():
     }
 
     # Make the model
-    knn = NearestNeighbors(metric="euclidean", algorithm="brute").fit(perc_matrix)
+    knn = NearestNeighbors(metric=metric, algorithm="brute").fit(perc_matrix)
 
     return knn, perc_matrix, index_to_appid, appid_to_index
 
