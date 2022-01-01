@@ -120,14 +120,6 @@ def make_content_based_dataset(main_set):
     joined_df.to_csv("sets/content_based_dataset.csv", index=False)
 
 
-"""
-I will also convert the positive and negative ratings into a percentage:
-positive / (positive + negative)
-
-Maybe a good idea would be to first remove games with less than like 5000 or so ratings
-just because if they have like 4000 positive and 1000 negative ratings
-"""
-
 def make_collaborative_based_dataset(main_set): 
     """
     Make a dataset to work on for the collaborative based filtering approach
@@ -316,13 +308,9 @@ def train_model(metric):
 
     return knn, perc_matrix, index_to_appid, appid_to_index
 
-
-# from time import perf_counter
-# start = perf_counter()
 # make_content_based_dataset("steam_updated")
 # df = pd.read_csv("sets/content_based_dataset.csv")
 # df["about_the_game"] = df["about_the_game"].fillna("")
 # vectorize_and_similaritize(df, [EUCLIDEAN])
-# print(perf_counter() - start)
 
 # make_collaborative_based_dataset("steam_updated")

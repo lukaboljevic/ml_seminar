@@ -71,12 +71,12 @@ def steamspy_tag_data_rename_cols():
 
 def update_ratings():
     """
-    For all the games in the steam.csv dataset, retrieve their
+    For all the games in the steam_updated dataset, retrieve their
     newest amount of positive and negative ratings.
     """
     # base link: https://store.steampowered.com/appreviews/<appid>?json=1&language=all
 
-    df = pd.read_csv("sets/steam.csv")
+    df = pd.read_csv("sets/steam_updated.csv")
     ids = df["appid"].values # get all ids
     num_to_update = len(ids)
     ids_skipped = []
@@ -159,15 +159,4 @@ def remove_edition_from_games():
 
     df.to_csv("sets/steam_updated.csv", index=False)
 
-# import time
-# start = time.perf_counter()
 # update_ratings()
-# add_more_tags()
-# remove_edition_from_games()
-# print(time.perf_counter() - start)
-
-# df = pd.read_csv("sets/steam_updated.csv")
-# editions = df[df["name"].str.contains("[^exp]edition", case=False)]["name"].values
-# for edition in editions:
-#     print(edition)
-# print(len(editions))

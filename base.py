@@ -111,6 +111,3 @@ games = [
 for metric in metrics:
     content_based_similar_games(games, metric, num_recommendations, description=description)
     # collaborative_based_similar_games(games, metric, num_recommendations)
-
-# df = pd.read_csv("sets/content_based_dataset.csv")
-# df["about_the_game"] = df["about_the_game"].fillna("")
